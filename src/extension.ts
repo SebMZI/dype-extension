@@ -4,7 +4,7 @@ export async function activate(context: vscode.ExtensionContext) {
 	const { GoogleGenAI } = await import("@google/genai");	
 
 	const ai = new GoogleGenAI({
-		apiKey: 'AIzaSyDCGWEUEmZu9DIXssscyHkbKBr6wy32A6s'
+		apiKey: process.env.GOOGLE_API_KEY || ''
 	});
 
 	const disposable = vscode.commands.registerCommand('dype.dypeCode', async () => {
