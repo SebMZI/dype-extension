@@ -39,6 +39,7 @@
     "typescript": "^5.8.3"
   },
   "dependencies": {
-    "@google/genai": "^1.8.0"
+    "@google/genai": "^1.8.0",
+    "dotenv": "^17.0.1"
   }
 }
