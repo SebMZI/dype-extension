@@ -2,7 +2,7 @@
   "name": "dype",
   "displayName": "dype",
   "description": "",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "engines": {
     "vscode": "^1.101.0"
   },
@@ -17,7 +17,36 @@
         "command": "dype.dypeCode",
         "title": "Dype my code"
       }
-    ]
+    ],
+    "configuration": {
+      "type": "object",
+      "title": "Dype Configuration",
+      "properties": {
+        "dype.apiKey": {
+          "type": "string",
+          "default": "",
+          "description": "Your Google API key for Dype integration."
+        },
+        "dype.model": {
+          "type": "string",
+          "enum": [
+            "gemini-2.5-pro",
+            "gemini-2.5-flash",
+            "gemini-2.5-flash-lite",
+            "gemini-2.5-flash-preview-native-audio-dialog",
+            "gemini-2.5-pro-preview-tts",
+            "gemini-2.0-flash",
+            "gemini-2.0-flash-lite",
+            "gemini-1.5-pro",
+            "gemini-1.5-flash",
+            "gemini-1.0-pro"
+          ],
+          "default": "gemini-2.5-flash",
+          "description": "Select the Gemini model to use"
+        },
+        
+      }
+    }
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",

@@ -3,19 +3,30 @@ import * as dotenv from 'dotenv';
 
 dotenv.config();  
 
-const maxToken = 60;
-let token: number = maxToken;
+const maxToken = 60; 
+let token: number = maxToken; 
 
 export async function activate(context: vscode.ExtensionContext) {
+	const config = vscode.workspace.getConfiguration('dype');
+	let model = config.get<string>('model');
+	let apiKey = config.get<string>('apiKey');
+
+	vscode.workspace.onDidChangeConfiguration(e => {
+		if (e.affectsConfiguration('dype')) {
+			model = vscode.workspace.getConfiguration('dype').get<string>('model');
+			apiKey = vscode.workspace.getConfiguration('dype').get<string>('apiKey');
+		}
+	});
+
 	const { GoogleGenAI } = await import("@google/genai");	
 
-	if (!process.env.GOOGLE_API_KEY) {
+	if (!apiKey) {
 		vscode.window.showErrorMessage('GOOGLE_API_KEY is not set in the environment variables. Please set it to use this extension.');
 		return;
 	}
 
 	const ai = new GoogleGenAI({
-		apiKey: process.env.GOOGLE_API_KEY || ''
+		apiKey: apiKey || process.env.GOOGLE_API_KEY,
 	});
 
 	const disposable = vscode.commands.registerCommand('dype.dypeCode', async () => {
@@ -37,13 +48,12 @@ export async function activate(context: vscode.ExtensionContext) {
 			return;
 		}
 
-
 		let range: vscode.Range;
 
-		if (selection && !selection?.isEmpty) {
-			const start = new vscode.Position(selection?.start.line, 0);
-			const endLine = selection?.end.line;
-			const endChar = document.lineAt(endLine).text.length;
+		if (selection && !selection.isEmpty) { 
+			const start = new vscode.Position(selection.start.line, 0); 
+			const endLine = selection.end.line; 
+			const endChar = document.lineAt(endLine).text.length; 
 			const end   = new vscode.Position(endLine, endChar);
 			range = new vscode.Range(start, end);
 		} else {
@@ -66,11 +76,12 @@ export async function activate(context: vscode.ExtensionContext) {
 			FILE END
 		`;
 
+		let success: boolean = false;
 
 		try {
 			vscode.window.showInformationMessage("Analyzing the code...");
 			const response = await ai.models.generateContent({
-				model: "gemini-2.5-flash",
+				model: `${model || "gemini-2.5-flash"}`,
 				contents: prompt, 
 			});
 
@@ -87,12 +98,13 @@ export async function activate(context: vscode.ExtensionContext) {
                     vscode.window.showErrorMessage('Failed to update the document.');
                 }
             });
-
+			success = true;
 		}catch (error) {
-			vscode.window.showErrorMessage('Error analyzing the code: ' + error);
+			success = false;
+			vscode.window.showErrorMessage('Error analyzing the code: ' + error); // Consider narrowing the type of 'error' (e.g., instanceof Error) for more specific error messages.
 			return;
 		} finally {
-			vscode.window.showInformationMessage("Analysis completed."); 
+			vscode.window.showInformationMessage(`Analyzis ${success ? 'completed' : 'failed'}.`); 
 			setTimeout(() => {
 				if (token <= maxToken){
 					token += 10;
