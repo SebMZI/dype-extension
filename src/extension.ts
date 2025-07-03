@@ -25,24 +25,46 @@ export async function activate(context: vscode.ExtensionContext) {
 		}
 
 		token -= 10;
-		vscode.window.showInformationMessage(`Tokens: ${token}/${maxToken}`);
-		const document = vscode.window.activeTextEditor?.document;
+
+		//vscode.window.showInformationMessage(`Tokens: ${token}/${maxToken}`);
+		const editor = vscode.window.activeTextEditor;
+		
+		const document = editor?.document;
+		const selection = editor?.selection;
+
 		if (!document) {
 			vscode.window.showErrorMessage('No active text editor found.');
 			return;
 		}
-		vscode.window.showInformationMessage(`${JSON.stringify(document)}`);
-		const textFile = document.getText();
+
+
+		let range: vscode.Range;
+
+		if (selection && !selection?.isEmpty) {
+			const start = new vscode.Position(selection?.start.line, 0);
+			const endLine = selection?.end.line;
+			const endChar = document.lineAt(endLine).text.length;
+			const end   = new vscode.Position(endLine, endChar);
+			range = new vscode.Range(start, end);
+		} else {
+			const lastLine = document.lineCount - 1;
+			range = new vscode.Range(
+			new vscode.Position(0, 0),
+			new vscode.Position(lastLine, document.lineAt(lastLine).text.length)
+			);
+		}
+
+		const textFile = document.getText(range);
 
 		const prompt = `
 			You are an expert ${document.languageId} coach.
 			Analyze this ${document.languageId} file and insert short inline comments at only key spots where errors lie or need advice.
-			Return ONLY the full ${document.languageId} source—no markdown fences, no extra explanation.
+			Return ONLY and ONLY the full ${document.languageId} source—no markdown fences, no extra explanation and respect indentation.
 
 			FILE START
 			${textFile}
 			FILE END
-			`;
+		`;
 
 
 		try {
@@ -52,16 +74,12 @@ export async function activate(context: vscode.ExtensionContext) {
 				contents: prompt, 
 			});
 
-			vscode.window.activeTextEditor && vscode.window.activeTextEditor.edit(editBuilder => { 
-                const fullRange = new vscode.Range(
-                    document.positionAt(0),
-                    document.positionAt(document.getText().length)
-                );
+			vscode.window.activeTextEditor?.edit(editBuilder => { 
 				if (!response.text){
 					vscode.window.showErrorMessage('No response text received from the AI model.');
 					return;
 				}
-				editBuilder.replace(fullRange, response.text);
+				editBuilder.replace(range, response.text);
             }).then(success => {
                 if (success) {
                     vscode.window.showInformationMessage('Document updated successfully!');
