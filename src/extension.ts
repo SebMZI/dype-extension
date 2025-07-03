@@ -3,7 +3,8 @@ import * as dotenv from 'dotenv';
 
 dotenv.config();  
 
-let token: number = 60;
+const maxToken = 60;
+let token: number = maxToken;
 
 export async function activate(context: vscode.ExtensionContext) {
 	const { GoogleGenAI } = await import("@google/genai");	
@@ -19,6 +20,7 @@ export async function activate(context: vscode.ExtensionContext) {
 		}
 
 		token -= 10;
+		vscode.window.showInformationMessage(`Tokens: ${token}/${maxToken}`);
 		const document = vscode.window.activeTextEditor?.document;
 		if (!document) {
 			vscode.window.showErrorMessage('No active text editor found.');
@@ -69,10 +71,10 @@ export async function activate(context: vscode.ExtensionContext) {
 		} finally {
 			vscode.window.showInformationMessage("Analysis completed."); 
 			setTimeout(() => {
-				if (token <= 60){
+				if (token <= maxToken){
 					token += 10;
 				}
-			}, 30000)
+			}, 30000);
 		}
 		
 	});
