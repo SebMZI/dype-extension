@@ -1,7 +1,7 @@
 {
   "name": "dype",
   "displayName": "dype",
-  "description": "",
+  "description": "A VS Code extension powered by AI that analyzes your code and provides actionable, inline feedback. Whether you need quick error spotting, stylistic advice, or guidance on best practices, Dype gives you intelligent comments directly where you write.",
   "version": "1.0.0",
   "engines": {
     "vscode": "^1.101.0"
@@ -43,8 +43,7 @@
           ],
           "default": "gemini-2.5-flash",
           "description": "Select the Gemini model to use"
-        },
-        
+        }
       }
     }
   },
