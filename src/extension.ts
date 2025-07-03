@@ -9,6 +9,11 @@ let token: number = maxToken;
 export async function activate(context: vscode.ExtensionContext) {
 	const { GoogleGenAI } = await import("@google/genai");	
 
+	if (!process.env.GOOGLE_API_KEY) {
+		vscode.window.showErrorMessage('GOOGLE_API_KEY is not set in the environment variables. Please set it to use this extension.');
+		return;
+	}
+
 	const ai = new GoogleGenAI({
 		apiKey: process.env.GOOGLE_API_KEY || ''
 	});
