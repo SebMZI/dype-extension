@@ -3,6 +3,8 @@ import * as dotenv from 'dotenv';
 
 dotenv.config();  
 
+let token: number = 60;
+
 export async function activate(context: vscode.ExtensionContext) {
 	const { GoogleGenAI } = await import("@google/genai");	
 
@@ -11,6 +13,12 @@ export async function activate(context: vscode.ExtensionContext) {
 	});
 
 	const disposable = vscode.commands.registerCommand('dype.dypeCode', async () => {
+		if (token < 10) {
+			vscode.window.showErrorMessage('You have reached the maximum number of requests. Please wait for 30 seconds before trying again.');
+			return;
+		}
+
+		token -= 10;
 		const document = vscode.window.activeTextEditor?.document;
 		if (!document) {
 			vscode.window.showErrorMessage('No active text editor found.');
@@ -60,6 +68,11 @@ export async function activate(context: vscode.ExtensionContext) {
 			return;
 		} finally {
 			vscode.window.showInformationMessage("Analysis completed."); 
+			setTimeout(() => {
+				if (token <= 60){
+					token += 10;
+				}
+			}, 30000)
 		}
 		
 	});
