@@ -1,9 +1,9 @@
 import * as vscode from 'vscode';
 import * as dotenv from 'dotenv';
 
-dotenv.config();  
+dotenv.config(); 
 
-const maxToken = 60; 
+const maxToken = 60;
 let token: number = maxToken; 
 
 export async function activate(context: vscode.ExtensionContext) {
@@ -11,25 +11,46 @@ export async function activate(context: vscode.ExtensionContext) {
 	let model = config.get<string>('model');
 	let apiKey = config.get<string>('apiKey');
 
+	let ai: any; 
+
+	const initializeGenAI = () => {
+		const currentConfig = vscode.workspace.getConfiguration('dype');
+		model = currentConfig.get<string>('model');
+		apiKey = currentConfig.get<string>('apiKey');
+
+		if (!apiKey) { 
+			vscode.window.showErrorMessage('Google API Key is not set in extension settings. Please configure it to use this extension.');
+			ai = undefined; 
+			return false;
+		}
+
+		try {
+			
+			const { GoogleGenAI } = require("@google/genai"); 
+			ai = new GoogleGenAI({
+				apiKey: apiKey,
+			});
+			return true; 
+		} catch (error) {
+			vscode.window.showErrorMessage(`Failed to initialize Google GenAI: ${error}`);
+			ai = undefined;
+			return false;
+		}
+	};
+
+	initializeGenAI();
+
 	vscode.workspace.onDidChangeConfiguration(e => {
 		if (e.affectsConfiguration('dype')) {
-			model = vscode.workspace.getConfiguration('dype').get<string>('model');
-			apiKey = vscode.workspace.getConfiguration('dype').get<string>('apiKey');
+			initializeGenAI();
 		}
 	});
 
-	const { GoogleGenAI } = await import("@google/genai");	
-
-	if (!apiKey) {
-		vscode.window.showErrorMessage('GOOGLE_API_KEY is not set in the environment variables. Please set it to use this extension.');
-		return;
-	}
-
-	const ai = new GoogleGenAI({
-		apiKey: apiKey || process.env.GOOGLE_API_KEY,
-	});
-
 	const disposable = vscode.commands.registerCommand('dype.dypeCode', async () => {
+		if (!ai) { 
+			vscode.window.showErrorMessage('Google GenAI model not initialized. Please ensure your API Key is set correctly.');
+			return;
+		}
 		if (token < 10) {
 			vscode.window.showErrorMessage('You have reached the maximum number of requests. Please wait for 30 seconds before trying again.');
 			return;
@@ -81,16 +102,17 @@ export async function activate(context: vscode.ExtensionContext) {
 		try {
 			vscode.window.showInformationMessage("Analyzing the code...");
 			const response = await ai.models.generateContent({
-				model: `${model || "gemini-2.5-flash"}`,
-				contents: prompt, 
+				model: `${model || "gemini-pro"}`, 
+				contents: [{ text: prompt }],
 			});
 
 			vscode.window.activeTextEditor?.edit(editBuilder => { 
-				if (!response.text){
+				const responseText = response.text(); 
+				if (!responseText){
 					vscode.window.showErrorMessage('No response text received from the AI model.');
 					return;
 				}
-				editBuilder.replace(range, response.text);
+				editBuilder.replace(range, responseText);
             }).then(success => {
                 if (success) {
                     vscode.window.showInformationMessage('Document updated successfully!');
@@ -99,16 +121,20 @@ export async function activate(context: vscode.ExtensionContext) {
                 }
             });
 			success = true;
-		}catch (error) {
+		}catch (error: unknown) { 
 			success = false;
-			vscode.window.showErrorMessage('Error analyzing the code: ' + error); // Consider narrowing the type of 'error' (e.g., instanceof Error) for more specific error messages.
+			let errorMessage = 'An unknown error occurred.';
+			if (error instanceof Error) {
+				errorMessage = error.message;
+			} else if (typeof error === 'string') {
+				errorMessage = error;
+			}
+			vscode.window.showErrorMessage('Error analyzing the code: ' + errorMessage);
 			return;
 		} finally {
-			vscode.window.showInformationMessage(`Analyzis ${success ? 'completed' : 'failed'}.`); 
+			vscode.window.showInformationMessage(`Analysis ${success ? 'completed' : 'failed'}.`); 
 			setTimeout(() => {
-				if (token <= maxToken){
-					token += 10;
-				}
+				token = Math.min(token + 10, maxToken);
 			}, 30000);
 		}
 		
